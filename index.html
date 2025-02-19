@@ -25,6 +25,15 @@
       flex-direction: column-reverse;
     }
 
+    #input {
+      width: 750px;
+    }
+
+    #sdp {
+      height: 100px;
+      width: 400px;
+    }
+
     .header {
       font-size: xx-large;
       text-align: center;
@@ -51,6 +60,10 @@
       align-self: center;
     }
 
+    .topped {
+      align-self: flex-start;
+    }
+
     .right {
       align-self: flex-end;
     }
@@ -63,10 +76,6 @@
     .clickable {
       cursor: pointer;
     }
-
-    #input {
-      width: 750px;
-    }
   </style>
 
   <svg style="display: none;">
@@ -77,6 +86,10 @@
     <symbol>
       <path id="send-symbol" fill="lightblue" stroke="black"
         d="M10 14l11 -11 M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5" />
+    </symbol>
+    <symbol>
+      <path id="copy-symbol" fill="none" stroke="black"
+        d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />
     </symbol>
   </svg>
 </head>
@@ -94,14 +107,15 @@
         <use href="#send-symbol"></use>
       </svg>
     </div>
-    <div>
-      <button id="offer" class="padded">Offer</button>
-      <button id="randomMessages" class="padded">Send Random Messages</button>
-    </div>
-    <div>
-      <button id="answer" class="padded">Answer</button>
-      <span>sdp:</span>
-      <input id="sdp" title="sdp" class="padded" type="text" value="" />
+    <div class="flexed">
+      <button id="randomMessages" class="topped padded">Send Random Messages</button>
+      <button id="offer" class="topped padded">Offer</button>
+      <button id="answer" class="topped padded">Answer</button>
+      <span class="padded">sdp:</span>
+      <textarea id="sdp" class="padded" type="text" value=""></textarea>
+      <svg id="copy" class="topped clickable" height="20px" width="20px" viewBox="0 0 24 24">
+        <use href="#copy-symbol"></use>
+      </svg>
     </div>
   </div>
 

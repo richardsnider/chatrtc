@@ -4,6 +4,7 @@ let dataChannel/* : RTCDataChannel  */ = null;
 const specialProps = ['xmlns', 'tag', 'textContent', 'children', 'onclick', 'insertPosition'];
 const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 const randString = () => Array.from(new Array(20)).map(() => characters.charAt(Math.floor(Math.random() * characters.length))).join('');
+
 const newElement = (parentElement /* : Element */, config/* : Record<string, any> */ = {}) => {
   const element = document.createElementNS(config.xmlns || 'http://www.w3.org/1999/xhtml', config.tag || 'div');
   element.textContent = config.textContent || null;
@@ -79,30 +80,37 @@ const answer = async () => {
 
 const logIpAddress = async () => {
   const ifconfigResponse = await fetch('https://ifconfig.me/ip');
-  log(`ifconfig.me response (http ${ifconfigResponse.status}) ${await ifconfigResponse.text()}`);
+  log(`ifconfig.me response (HTTP ${ifconfigResponse.status}) ${await ifconfigResponse.text()}`);
+};
+
+const sendMessage = () => {
+  sendChannel ? sendChannel.send(elements['input'].value) : null;
+  chatLog(`you: ${elements['input'].value}`);
+  elements['input'].value = '';
+  elements['input'].focus();
+};
+
+const generateRandomMessages = () => {
+  let i = 0;
+  const interval = setInterval(() => {
+    elements['input'].value = randString();;
+    sendMessage();
+    i++;
+    if (i >= 5) clearInterval(interval);
+  }, 1000);
 };
 
 const init = async () => {
   logIpAddress();
-  ['chat', 'input', 'send', 'offer', 'answer', 'sdp', 'randomMessages'].map(id => elements[id] = document.querySelector(`#${id}`));
-  elements['send'].addEventListener('click', () => {
-    dataChannel?.send(elements['input'].value);
-    chatLog(`you: ${elements['input'].value}`);
-    elements['input'].value = '';
-    elements['input'].focus();
-  });
+  ['chat', 'input', 'send', 'randomMessages', 'offer', 'answer', 'sdp', 'copy'].map(id => elements[id] = document.querySelector(`#${id}`));
+
+  elements['send'].addEventListener('click', () => sendMessage());
+  elements['randomMessages'].addEventListener('click', () => generateRandomMessages());
+
   elements['offer'].addEventListener('click', async (event) => await offer());
   elements['answer'].addEventListener('click', async (event) => await answer());
-  elements['randomMessages'].addEventListener('click', () => {
-    let i = 0;
-    const interval = setInterval(() => {
-      const data = randString();
-      dataChannel?.send(elements['input'].value);
-      log(data);
-      i++;
-      if (i >= 5) clearInterval(interval);
-    }, 1000);
-  });
+  elements['copy'].addEventListener('click', () => navigator.clipboard.writeText(elements['sdp'].value));
+
   // const worker = new Worker('main.js');
   // worker.postMessage(JSON.stringify({ at: 0, s: '' }));
   // worker.onmessage = (e) => (document.querySelector('#result') || new Element()).textContent = e.data;
