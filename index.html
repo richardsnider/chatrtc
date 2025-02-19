@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width" />
+  <style>
+    body {
+      /* https://github.com/codazoda/neatcss/blob/master/neat.css */
+      background-color: grey;
+      font-family: 'Courier New', Courier, monospace;
+      margin: 0;
+      max-width: 800px;
+      padding: 0 20px 20px 20px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    #chat {
+      background-color: lightgray;
+      overflow-y: scroll;
+      height: 500px;
+      display: flex;
+      flex-direction: column-reverse;
+    }
+
+    .header {
+      font-size: xx-large;
+      text-align: center;
+    }
+
+    .light {
+      background-color: whitesmoke;
+    }
+
+    .light-text {
+      color: grey;
+    }
+
+    .bordered {
+      border: solid black 1px;
+      border-radius: 5px;
+    }
+
+    .flexed {
+      display: flex;
+    }
+
+    .aligned {
+      align-self: center;
+    }
+
+    .right {
+      align-self: flex-end;
+    }
+
+    .padded {
+      margin: 3px;
+      padding: 5px;
+    }
+
+    .clickable {
+      cursor: pointer;
+    }
+
+    #input {
+      width: 750px;
+    }
+  </style>
+
+  <svg style="display: none;">
+    <symbol>
+      <path id="user-symbol" fill="slategrey" stroke="black"
+        d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0 M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+    </symbol>
+    <symbol>
+      <path id="send-symbol" fill="lightblue" stroke="black"
+        d="M10 14l11 -11 M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5" />
+    </symbol>
+  </svg>
+</head>
+
+<body>
+  <div class="light bordered">
+    <div id="title" class="header">CHATTERBOX</div>
+    <div id="chat"></div>
+  </div>
+
+  <div class="bordered light">
+    <div class="flexed">
+      <input id="input" class="padded" type="text" value="" />
+      <svg id="send" class="aligned clickable" height="40px" width="40px" viewBox="0 0 24 24">
+        <use href="#send-symbol"></use>
+      </svg>
+    </div>
+    <div>
+      <button id="offer" class="padded">Offer</button>
+      <button id="randomMessages" class="padded">Send Random Messages</button>
+    </div>
+    <div>
+      <button id="answer" class="padded">Answer</button>
+      <span>sdp:</span>
+      <input id="sdp" title="sdp" class="padded" type="text" value="" />
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+
+</html>
