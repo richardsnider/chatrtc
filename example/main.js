@@ -1,7 +1,5 @@
-let pc;
-let channel;
-
 const offerButton = document.getElementById('offer');
+const updateOffer = document.getElementById('update-offer');
 const answerButton = document.getElementById('answer');
 const sendButton = document.getElementById('sendButton');
 const input = document.querySelector('textarea#input');
@@ -10,54 +8,34 @@ const candidateElement = document.querySelector('textarea#candidate');
 const localSdp = document.querySelector('textarea#local-sdp');
 const remoteSdp = document.querySelector('textarea#remote-sdp');
 
-sendButton.onclick = () => channel.send(input.value);
+const pc = new RTCPeerConnection();
+pc.onicecandidate = (e) => e.candidate ? candidateElement.value = e.candidate.candidate : null;
+let channel;
 
-const signaling = new BroadcastChannel('webrtc');
-signaling.onmessage = async e => {
-  switch (e.data.type) {
-    case 'answer':
-      if (!pc) throw new Error('no peerconnection');
-      remoteSdp.value = e.data.sdp; // manual copy task
-      await pc.setRemoteDescription({type: 'answer', sdp: remoteSdp.value});
-      break;
-    default:
-      console.log('unhandled', e);
-      break;
-  }
-};
+const handleMessage = (event) => console.log(`received: ${event.data}`);
 
-const handleIceCandidate = e => {
-  console.log(`candidate: ${JSON.stringify(e.candidate)}`);
-  if(e.candidate) candidateElement.value = e.candidate.candidate;
-};
-
-offerButton.onclick = async () => {
-  offerButton.disabled = true;
-  pc = new RTCPeerConnection();
-  pc.onicecandidate = handleIceCandidate;
+const getOfferSdp = async () => {
   channel = pc.createDataChannel('chat');
-  channel.onmessage = (event) => console.log(`received: ${event.data}`);
-
+  channel.onmessage = handleMessage;
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
-  localSdp.value = offer.sdp;
-};
+  return offer.sdp;
+}
 
-answerButton.onclick = async () => {
-  pc = new RTCPeerConnection();
-  pc.onicecandidate = handleIceCandidate;
-  pc.ondatachannel = function (event) {
-    console.log(`data channel received: ${event.channel.label}`);
+const getAnswerSdp = async (sdp, candidate) => {
+  pc.ondatachannel = (event) => {
     channel = event.channel;
-    channel.onmessage = (event) => console.log(`received: ${event.data}`);
+    channel.onmessage = handleMessage;
   };
 
-  await pc.setRemoteDescription({type: 'offer', sdp: remoteSdp.value});
-  await pc.addIceCandidate({ candidate: candidateElement.value, sdpMid: '0', sdpMLineIndex: 0 });
-
+  await pc.setRemoteDescription({type: 'offer', sdp: sdp});
+  await pc.addIceCandidate({ candidate: candidate, sdpMid: '0', sdpMLineIndex: 0 });
   const answer = await pc.createAnswer();
-  console.log(`answer: ${JSON.stringify(answer)}`);
-  localSdp.value = answer.sdp;
-  signaling.postMessage({ type: 'answer', sdp: answer.sdp }); ///////////////
   await pc.setLocalDescription(answer);
-};
+  return answer.sdp;
+}
+
+offerButton.onclick = async () => localSdp.value = await getOfferSdp();
+answerButton.onclick = async () => localSdp.value = await getAnswerSdp(remoteSdp.value, candidateElement.value);
+updateOffer.onclick = async () => await pc.setRemoteDescription({type: 'answer', sdp: remoteSdp.value});
+sendButton.onclick = () => channel.send(input.value);
