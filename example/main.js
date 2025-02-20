@@ -1,6 +1,5 @@
 let pc;
-let sendChannel;
-let receiveChannel;
+let channel;
 
 const offerButton = document.getElementById('offer');
 const answerButton = document.getElementById('answer');
@@ -10,7 +9,7 @@ const input = document.querySelector('textarea#input');
 const candidateElement = document.querySelector('textarea#candidate');
 const sdpElement = document.querySelector('textarea#sdp');
 
-sendButton.onclick = () => sendChannel ? sendChannel.send(input.value) : receiveChannel.send(input.value);
+sendButton.onclick = () => channel.send(input.value);
 
 const signaling = new BroadcastChannel('webrtc');
 signaling.onmessage = async e => {
@@ -45,8 +44,8 @@ offerButton.onclick = async () => {
   offerButton.disabled = true;
   pc = new RTCPeerConnection();
   pc.onicecandidate = handleIceCandidate;
-  sendChannel = pc.createDataChannel('sendDataChannel');
-  sendChannel.onmessage = (event) => console.log(`received: ${event.data}`);
+  channel = pc.createDataChannel('sendDataChannel');
+  channel.onmessage = (event) => console.log(`received: ${event.data}`);
 
   const offer = await pc.createOffer();
   signaling.postMessage({type: 'offer', sdp: offer.sdp});
@@ -55,13 +54,12 @@ offerButton.onclick = async () => {
 };
 
 const answer = async (sdp) => {
-  if (pc) throw new Error('existing peerconnection');
   pc = new RTCPeerConnection();
   pc.onicecandidate = handleIceCandidate;
   pc.ondatachannel = function (event) {
-    console.log('Receive Channel Callback');
-    receiveChannel = event.channel;
-    receiveChannel.onmessage = (event) => console.log(`received: ${event.data}`);
+    console.log(`data channel received: ${event.channel.label}`);
+    channel = event.channel;
+    channel.onmessage = (event) => console.log(`received: ${event.data}`);
   };
   await pc.setRemoteDescription({type: 'offer', sdp: sdp});
 
