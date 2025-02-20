@@ -111,11 +111,39 @@
       <button id="randomMessages" class="topped padded">Send Random Messages</button>
       <button id="offer" class="topped padded">Offer</button>
       <button id="answer" class="topped padded">Answer</button>
-      <span class="padded">sdp:</span>
-      <textarea id="sdp" class="padded" type="text" value=""></textarea>
-      <svg id="copy" class="topped clickable" height="20px" width="20px" viewBox="0 0 24 24">
-        <use href="#copy-symbol"></use>
-      </svg>
+      <!-- 'setRemote', 'candidate', 'localSdp', 'remoteSdp', 'copyCandidate', 'copyLocal', 'copyRemote'] -->
+      <button id="setRemote" class="topped padded">Set Remote</button>
+
+      <!-- <span class="padded">sdp:</span> -->
+      <!-- <textarea id="sdp" class="padded" type="text" value=""></textarea> -->
+      <div id="tabs" class="padded">
+        <div>
+          <button id="candidateTabButton" style="background-color: grey">Candidate</button>
+          <button id="localSdpTabButton" style="background-color: grey">Local SDP</button>
+          <button id="remoteSdpTabButton" style="background-color: grey">Remote SDP</button>
+        </div>
+
+        <div id="candidateTab" class="tab" style="display:none">
+          <svg id="copyCandidate" class="topped clickable" height="20px" width="20px" viewBox="0 0 24 24">
+            <use href="#copy-symbol"></use>
+          </svg>
+          <textarea id="candidate" class="padded" type="text" value=""></textarea>
+        </div>
+
+        <div id="localSdpTab" class="tab" style="display:none">
+          <svg id="copyLocal" class="topped clickable" height="20px" width="20px" viewBox="0 0 24 24">
+            <use href="#copy-symbol"></use>
+          </svg>
+          <textarea id="localSdp" class="padded" type="text" value=""></textarea>
+        </div>
+
+        <div id="remoteSdpTab" class="tab" style="display:none">
+          <svg id="copyRemote" class="topped clickable" height="20px" width="20px" viewBox="0 0 24 24">
+            <use href="#copy-symbol"></use>
+          </svg>
+          <textarea id="remoteSdp" class="padded" type="text" value=""></textarea>
+        </div>
+      </div>
     </div>
   </div>
 

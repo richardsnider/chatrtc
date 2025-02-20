@@ -1,6 +1,7 @@
 const elements/* : Record<string, Element> */ = {};
-let peerConnection/* : RTCPeerConnection */ = null;
-let dataChannel/* : RTCDataChannel  */ = null;
+const pc = new RTCPeerConnection();
+let channel/* : RTCDataChannel  */ = null;
+
 const specialProps = ['xmlns', 'tag', 'textContent', 'children', 'onclick', 'insertPosition'];
 const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 const randString = () => Array.from(new Array(20)).map(() => characters.charAt(Math.floor(Math.random() * characters.length))).join('');
@@ -12,6 +13,11 @@ const newElement = (parentElement /* : Element */, config/* : Record<string, any
   if (config.onclick) element.addEventListener('click', config.onclick);
   Object.entries(config).filter(v => !(specialProps.includes(v[0]))).map(v => element.setAttribute(v[0], v[1] || ''));
   return parentElement.insertAdjacentElement(config.insertPosition || 'beforeend', element);
+};
+
+const switchTabs = (id) => {
+  [].slice.call(document.getElementsByClassName('tab')).map(e => e.style.display = 'none');
+  elements[id].style.display = 'block';
 };
 
 const userSvg = {
@@ -52,31 +58,38 @@ const log = (data /* : string | { [k: string]: unknown } */ = '') => {
   return content;
 };
 
-const offer = async () => {
-  peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-  const offer = await peerConnection.createOffer();
-  await peerConnection.setLocalDescription(offer);
-  log(`Offering SDP ${offer?.sdp}...`);
-  peerConnection.addEventListener('datachannel', dcEvent => {
-    log(`Received datachannel event ${JSON.stringify(dcEvent)}`);
-    dataChannel = dcEvent.channel;
-    dataChannel.onmessage = (msgEvent) => chatLog(`other_user: ${JSON.stringify(msgEvent.data)}`);
-  });
-};
+const handleMessage = (e) => chatLog(`other_user: ${JSON.stringify(e.data)}`);
 
-const answer = async () => {
-  peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-  const offerSdp = elements['sdp'].value;
-  log(`Answering SDP ${offerSdp}...`)
-  const remoteDescription = new RTCSessionDescription({ sdp: offerSdp, type: 'offer' });
-  await peerConnection.setRemoteDescription(remoteDescription);
-  log(`Remote description set for SDP ${remoteDescription.sdp}`);
-  const answer = await peerConnection.createAnswer();
-  await peerConnection.setLocalDescription(answer);
-  log(`Answered SDP ${answer.sdp}`);
-  dataChannel = peerConnection.createDataChannel('default');
-  dataChannel.onmessage = (event) => chatLog(`other_user: ${JSON.stringify(event.data)}`);
-};
+const getOfferSdp = async () => {
+  channel = pc.createDataChannel('chat');
+  channel.onmessage = handleMessage;
+  const offer = await pc.createOffer();
+  log(`Created offer SDP: ${offer.sdp}`);
+  await pc.setLocalDescription(offer);
+  return offer.sdp;
+}
+
+const getAnswerSdp = async (sdp, candidate) => {
+  if (!sdp) { log('No SDP provided'); return; }
+  if (!candidate) { log('No ICE candidate provided'); return; }
+
+  pc.ondatachannel = (e) => {
+    log(`Received datachannel event ${JSON.stringify(e)}`);
+    channel = e.channel;
+    channel.onmessage = handleMessage;
+  };
+
+  await pc.setRemoteDescription({ type: 'offer', sdp: sdp });
+  log(`Set Remote SDP of Offer ${sdp}`);
+
+  await pc.addIceCandidate({ candidate: candidate, sdpMid: '0', sdpMLineIndex: 0 });
+  log(`Set ICE candidate of Offer`);
+
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  log(`Answered with SDP ${answer.sdp}`);
+  return answer.sdp;
+}
 
 const logIpAddress = async () => {
   const ifconfigResponse = await fetch('https://ifconfig.me/ip');
@@ -84,7 +97,7 @@ const logIpAddress = async () => {
 };
 
 const sendMessage = () => {
-  sendChannel ? sendChannel.send(elements['input'].value) : null;
+  channel ? channel.send(elements['input'].value) : null; // TODO: remove condition
   chatLog(`you: ${elements['input'].value}`);
   elements['input'].value = '';
   elements['input'].focus();
@@ -102,14 +115,32 @@ const generateRandomMessages = () => {
 
 const init = async () => {
   logIpAddress();
-  ['chat', 'input', 'send', 'randomMessages', 'offer', 'answer', 'sdp', 'copy'].map(id => elements[id] = document.querySelector(`#${id}`));
+  ['chat', 'input', 'send', 'randomMessages', 'offer', 'answer', 'setRemote', 
+    'candidateTab', 'localSdpTab', 'remoteSdpTab', 'candidateTabButton', 'localSdpTabButton', 'remoteSdpTabButton', 
+    'candidate', 'localSdp', 'remoteSdp', 'copyCandidate', 'copyLocal', 'copyRemote'].map(id => elements[id] = document.querySelector(`#${id}`));
+
+  elements['candidateTabButton'].addEventListener('click', () => switchTabs('candidateTab'));
+  elements['localSdpTabButton'].addEventListener('click', () => switchTabs('localSdpTab'));
+  elements['remoteSdpTabButton'].addEventListener('click', () => switchTabs('remoteSdpTab'));
+
+  elements['copyCandidate'].addEventListener('click', () => navigator.clipboard.writeText(elements['candidate'].value));
+  elements['copyLocal'].addEventListener('click', () => navigator.clipboard.writeText(elements['localSdp'].value));
+  elements['copyRemote'].addEventListener('click', () => navigator.clipboard.writeText(elements['remoteSdp'].value));
+
+  pc.onicecandidate = (e) => {
+    if (e.candidate) {
+      log(`ICE candidate ${e.candidate.candidate}`);
+      elements['candidate'].value = e.candidate.candidate;
+    }
+  };
+
+  elements['offer'].addEventListener('click', async (event) => elements['localSdp'].value = offer.sdp = await getOfferSdp());
+  elements['answer'].addEventListener('click', async (event) => elements['localSdp'].value = await getAnswerSdp(elements['remoteSdp'].value, elements['candidate'].value));
+  elements['setRemote'].addEventListener('click', async (event) => await pc.setRemoteDescription({type: 'answer', sdp: elements['remoteSdp'].value}));
+
 
   elements['send'].addEventListener('click', () => sendMessage());
   elements['randomMessages'].addEventListener('click', () => generateRandomMessages());
-
-  elements['offer'].addEventListener('click', async (event) => await offer());
-  elements['answer'].addEventListener('click', async (event) => await answer());
-  elements['copy'].addEventListener('click', () => navigator.clipboard.writeText(elements['sdp'].value));
 
   // const worker = new Worker('main.js');
   // worker.postMessage(JSON.stringify({ at: 0, s: '' }));
