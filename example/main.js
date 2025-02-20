@@ -7,7 +7,8 @@ const sendButton = document.getElementById('sendButton');
 const input = document.querySelector('textarea#input');
 
 const candidateElement = document.querySelector('textarea#candidate');
-const sdpElement = document.querySelector('textarea#sdp');
+const localSdp = document.querySelector('textarea#local-sdp');
+const remoteSdp = document.querySelector('textarea#remote-sdp');
 
 sendButton.onclick = () => channel.send(input.value);
 
@@ -15,11 +16,13 @@ const signaling = new BroadcastChannel('webrtc');
 signaling.onmessage = async e => {
   switch (e.data.type) {
     case 'offer':
-      answer(e.data.sdp);
+      localSdp.value = e.data.sdp; // manual copy task
+      answer();
       break;
     case 'answer':
       if (!pc) throw new Error('no peerconnection');
-      await pc.setRemoteDescription(e.data);
+      remoteSdp.value = e.data.sdp; // manual copy task
+      await pc.setRemoteDescription({type: 'answer', sdp: remoteSdp.value});
       break;
     case 'candidate':
       await pc.addIceCandidate(e.data);
@@ -31,13 +34,16 @@ signaling.onmessage = async e => {
 };
 
 const handleIceCandidate = e => {
-  console.log(JSON.stringify(e.candidate));
-  signaling.postMessage({
+  const candidateInit = {
     type: 'candidate',
     candidate: e.candidate?.candidate,
     sdpMid: e.candidate?.sdpMid,
     sdpMLineIndex: e.candidate?.sdpMLineIndex,
-  });
+  };
+
+  console.log(JSON.stringify(candidateInit));
+  if(e.candidate) candidateElement.value = JSON.stringify(candidateInit);
+  signaling.postMessage(candidateInit);
 };
 
 offerButton.onclick = async () => {
@@ -50,10 +56,10 @@ offerButton.onclick = async () => {
   const offer = await pc.createOffer();
   signaling.postMessage({type: 'offer', sdp: offer.sdp});
   await pc.setLocalDescription(offer);
-  sdpElement.value = offer.sdp;
+  localSdp.value = offer.sdp;
 };
 
-const answer = async (sdp) => {
+const answer = async () => {
   pc = new RTCPeerConnection();
   pc.onicecandidate = handleIceCandidate;
   pc.ondatachannel = function (event) {
@@ -61,11 +67,11 @@ const answer = async (sdp) => {
     channel = event.channel;
     channel.onmessage = (event) => console.log(`received: ${event.data}`);
   };
-  await pc.setRemoteDescription({type: 'offer', sdp: sdp});
+  await pc.setRemoteDescription({type: 'offer', sdp: localSdp.value});
 
   const answer = await pc.createAnswer();
   signaling.postMessage({ type: 'answer', sdp: answer.sdp });
   console.log(`answer: ${JSON.stringify(answer)}`);
-  sdpElement.value = JSON.stringify(answer);
+  localSdp.value = answer.sdp;
   await pc.setLocalDescription(answer);
 };
