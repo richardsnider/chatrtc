@@ -17,6 +17,11 @@
       margin-right: auto;
     }
 
+    textarea {
+      width: 200px;
+      height: 200px;
+    }
+
     #chat {
       background-color: lightgray;
       overflow-y: scroll;
@@ -111,11 +116,8 @@
       <button id="randomMessages" class="topped padded">Send Random Messages</button>
       <button id="offer" class="topped padded">Offer</button>
       <button id="answer" class="topped padded">Answer</button>
-      <!-- 'setRemote', 'candidate', 'localSdp', 'remoteSdp', 'copyCandidate', 'copyLocal', 'copyRemote'] -->
       <button id="setRemote" class="topped padded">Set Remote</button>
 
-      <!-- <span class="padded">sdp:</span> -->
-      <!-- <textarea id="sdp" class="padded" type="text" value=""></textarea> -->
       <div id="tabs" class="padded">
         <div>
           <button id="candidateTabButton" style="background-color: grey">Candidate</button>
@@ -123,7 +125,7 @@
           <button id="remoteSdpTabButton" style="background-color: grey">Remote SDP</button>
         </div>
 
-        <div id="candidateTab" class="tab" style="display:none">
+        <div id="candidateTab" class="tab">
           <svg id="copyCandidate" class="topped clickable" height="20px" width="20px" viewBox="0 0 24 24">
             <use href="#copy-symbol"></use>
           </svg>
