@@ -15,18 +15,10 @@ sendButton.onclick = () => channel.send(input.value);
 const signaling = new BroadcastChannel('webrtc');
 signaling.onmessage = async e => {
   switch (e.data.type) {
-    case 'offer':
-      localSdp.value = e.data.sdp; // manual copy task
-      answer();
-      break;
     case 'answer':
       if (!pc) throw new Error('no peerconnection');
       remoteSdp.value = e.data.sdp; // manual copy task
       await pc.setRemoteDescription({type: 'answer', sdp: remoteSdp.value});
-      break;
-    case 'candidate':
-      candidateElement.value = JSON.stringify(e.data); // manual copy task
-      await pc?.addIceCandidate(JSON.parse(candidateElement.value));
       break;
     default:
       console.log('unhandled', e);
@@ -35,16 +27,8 @@ signaling.onmessage = async e => {
 };
 
 const handleIceCandidate = e => {
-  const candidateInit = {
-    type: 'candidate',
-    candidate: e.candidate?.candidate,
-    sdpMid: e.candidate?.sdpMid,
-    sdpMLineIndex: e.candidate?.sdpMLineIndex,
-  };
-
-  console.log(JSON.stringify(candidateInit));
-  if(e.candidate) candidateElement.value = JSON.stringify(candidateInit);
-  // signaling.postMessage(candidateInit);
+  console.log(`candidate: ${JSON.stringify(e.candidate)}`);
+  if(e.candidate) candidateElement.value = e.candidate.candidate;
 };
 
 offerButton.onclick = async () => {
@@ -55,12 +39,11 @@ offerButton.onclick = async () => {
   channel.onmessage = (event) => console.log(`received: ${event.data}`);
 
   const offer = await pc.createOffer();
-  // signaling.postMessage({type: 'offer', sdp: offer.sdp});
   await pc.setLocalDescription(offer);
   localSdp.value = offer.sdp;
 };
 
-const answer = async () => {
+answerButton.onclick = async () => {
   pc = new RTCPeerConnection();
   pc.onicecandidate = handleIceCandidate;
   pc.ondatachannel = function (event) {
@@ -68,9 +51,9 @@ const answer = async () => {
     channel = event.channel;
     channel.onmessage = (event) => console.log(`received: ${event.data}`);
   };
-  await pc.setRemoteDescription({type: 'offer', sdp: remoteSdp.value});
-  await pc.addIceCandidate(JSON.parse(candidateElement.value));
 
+  await pc.setRemoteDescription({type: 'offer', sdp: remoteSdp.value});
+  await pc.addIceCandidate({ candidate: candidateElement.value, sdpMid: '0', sdpMLineIndex: 0 });
 
   const answer = await pc.createAnswer();
   console.log(`answer: ${JSON.stringify(answer)}`);
@@ -78,6 +61,3 @@ const answer = async () => {
   signaling.postMessage({ type: 'answer', sdp: answer.sdp }); ///////////////
   await pc.setLocalDescription(answer);
 };
-
-
-answerButton.onclick = answer;
