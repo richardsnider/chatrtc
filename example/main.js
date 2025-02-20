@@ -31,39 +31,34 @@ signaling.onmessage = async e => {
   }
 };
 
+const handleIceCandidate = e => {
+  console.log(JSON.stringify(e.candidate));
+  signaling.postMessage({
+    type: 'candidate',
+    candidate: e.candidate?.candidate,
+    sdpMid: e.candidate?.sdpMid,
+    sdpMLineIndex: e.candidate?.sdpMLineIndex,
+  });
+};
+
 offerButton.onclick = async () => {
   offerButton.disabled = true;
   pc = new RTCPeerConnection();
-  pc.onicecandidate = e => {
-    console.log(JSON.stringify(e.candidate));
-    signaling.postMessage({
-      type: 'candidate',
-      candidate: e.candidate?.candidate,
-      sdpMid: e.candidate?.sdpMid,
-      sdpMLineIndex: e.candidate?.sdpMLineIndex,
-    });
-  };
+  pc.onicecandidate = handleIceCandidate;
   sendChannel = pc.createDataChannel('sendDataChannel');
   sendChannel.onmessage = (event) => console.log(`received: ${event.data}`);
 
   const offer = await pc.createOffer();
   signaling.postMessage({type: 'offer', sdp: offer.sdp});
   await pc.setLocalDescription(offer);
+  sdpElement.value = offer.sdp;
 };
 
 const answer = async (sdp) => {
   if (pc) throw new Error('existing peerconnection');
   pc = new RTCPeerConnection();
-  pc.onicecandidate = e => {
-    console.log(JSON.stringify(e.candidate));
-    signaling.postMessage({
-      type: 'candidate',
-      candidate: e.candidate?.candidate,
-      sdpMid: e.candidate?.sdpMid,
-      sdpMLineIndex: e.candidate?.sdpMLineIndex,
-    });
-  };
-  pc.ondatachannel = function(event) {
+  pc.onicecandidate = handleIceCandidate;
+  pc.ondatachannel = function (event) {
     console.log('Receive Channel Callback');
     receiveChannel = event.channel;
     receiveChannel.onmessage = (event) => console.log(`received: ${event.data}`);
@@ -71,6 +66,8 @@ const answer = async (sdp) => {
   await pc.setRemoteDescription({type: 'offer', sdp: sdp});
 
   const answer = await pc.createAnswer();
-  signaling.postMessage({type: 'answer', sdp: answer.sdp});
+  signaling.postMessage({ type: 'answer', sdp: answer.sdp });
+  console.log(`answer: ${JSON.stringify(answer)}`);
+  sdpElement.value = JSON.stringify(answer);
   await pc.setLocalDescription(answer);
 };
